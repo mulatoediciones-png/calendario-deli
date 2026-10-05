@@ -237,7 +237,7 @@ function renderForm(){
       <label class="f" for="ciudad">Ciudad<input type="text" id="ciudad" value="${esc(e.ciudad)}"></label>
       <label class="f" for="direccion">Dirección exacta<input type="text" id="direccion" value="${esc(e.direccion)}"></label>
       <label class="f" for="referencia">Punto de referencia<input type="text" id="referencia" value="${esc(e.referencia)}"></label>
-      <label class="f" for="maps">Enlace de Google Maps<input type="url" id="maps" value="${esc(e.maps)}" placeholder="https://maps.google.com/…"></label>
+      <label class="f" for="maps">Enlace de Google Maps<input type="url" id="maps" value="${esc(e.maps)}" placeholder="Pega aquí el enlace de Google Maps"></label>
       ${e.maps&&/^https?:\/\//.test(e.maps)?`<a href="${esc(e.maps)}" target="_blank" rel="noopener" style="color:var(--lila-ink);font-size:13px;font-weight:600">Abrir ubicación en Google Maps ↗</a>`:""}
     </fieldset>
     <fieldset><legend>3. Evento o degustación</legend>
