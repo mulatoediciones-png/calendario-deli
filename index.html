@@ -105,6 +105,15 @@ textarea{min-height:64px;resize:vertical}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 footer{margin-top:22px;color:var(--muted);font-size:12px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+a.btn{text-decoration:none;display:inline-flex;align-items:center}
+.btn-wa{background:#1F9D55;border-color:#1F9D55;color:#fff}
+.report{background:var(--lila-soft);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 16px;display:flex;flex-direction:column;gap:10px}
+.report h4{font-family:var(--f-display);margin:0;font-size:16px}
+.report p{margin:0;font-size:13px;color:var(--muted)}
+.report .row2{display:flex;gap:8px;flex-wrap:wrap}
+.report .row2 input{flex:1;min-width:180px}
+.hint{font-size:12px;font-weight:400;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -149,6 +158,7 @@ const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"
 const STATUS={pend:{t:"Por confirmar",c:"s-pend"},conf:{t:"Confirmado",c:"s-conf"},done:{t:"Realizado",c:"s-done"}};
 const TIPO_EVENTO=["Degustación","Aniversario del comercio","Inauguración","Activación en punto de venta","Otro"];
 const DINAMICAS=["Degustación de productos","Ruleta de premios","Síguenos en Instagram y gana","Votación del sabor favorito","Adivina el sabor","Compra mínima de $3: recibe un snack (minorista)","Compra mínima de un bulto: recibe un obsequio (mayorista)","Interacción con la mascota de la marca","Fotografías con clientes"];
+const DEFAULT_MSG="Por medio de la presente, solicitamos su aprobación para la realización de esta actividad, así como la asignación del material POP, los productos para degustación y los premios indicados, y la autorización del traslado del equipo en el horario señalado.\n\nQuedamos atentos a sus comentarios.";
 const CONTENIDO=["Publicación en colaboración con el comercio","Stories en vivo durante el evento","Videos de las dinámicas","Reacciones y entrevistas al público","Fotografías para redes","Video resumen del evento"];
 
 const pad=n=>String(n).padStart(2,"0");
@@ -158,8 +168,8 @@ const today=iso(new Date());
 
 let view=new Date(); view.setDate(1);
 let selected=today;
-let events={};           // id -> data
-let mode={type:"day"};   // {type:"day"} | {type:"form", id}
+let events={};
+let mode={type:"day"};
 const canWrite=true; let dbState="loading", busy=false;
 let confirmDelete=false;
 
@@ -218,10 +228,11 @@ function opts(name,list,type,values){
 }
 
 function renderForm(){
-  const isNew=!mode.id; const e=isNew?{fecha:selected,estado:"pend",mascota:"No"}:events[mode.id]||{};
+  const isNew=!mode.id; const e=isNew?{fecha:selected,estado:"pend",mascota:"No",mensajeGerencia:DEFAULT_MSG}:events[mode.id]||{};
   const ro=canWrite?"":"disabled";
   $("panel").innerHTML=noticeHtml()+`
   <h3>${isNew?"Nuevo evento":esc(title(e))}</h3><p class="meta">${prettyDate(e.fecha||selected)}</p>
+  ${isNew?"":toolsHtml(mode.id,e)}
   <form id="evForm" novalidate><fieldset ${ro} style="display:contents">
     <fieldset><legend>Estado</legend>${opts("estado",Object.keys(STATUS).map(k=>STATUS[k].t),"radio",STATUS[e.estado||"pend"].t)}</fieldset>
     <fieldset><legend>1. Información del cliente</legend>
@@ -238,7 +249,7 @@ function renderForm(){
       <label class="f" for="direccion">Dirección exacta<input type="text" id="direccion" value="${esc(e.direccion)}"></label>
       <label class="f" for="referencia">Punto de referencia<input type="text" id="referencia" value="${esc(e.referencia)}"></label>
       <label class="f" for="maps">Enlace de Google Maps<input type="url" id="maps" value="${esc(e.maps)}" placeholder="Pega aquí el enlace de Google Maps"></label>
-      ${e.maps&&/^https?:\/\//.test(e.maps)?`<a href="${esc(e.maps)}" target="_blank" rel="noopener" style="color:var(--lila-ink);font-size:13px;font-weight:600">Abrir ubicación en Google Maps ↗</a>`:""}
+      ${e.maps&&e.maps.indexOf("http")===0?`<a href="${esc(e.maps)}" target="_blank" rel="noopener" style="color:var(--lila-ink);font-size:13px;font-weight:600">Abrir ubicación en Google Maps ↗</a>`:""}
     </fieldset>
     <fieldset><legend>3. Evento o degustación</legend>
       <div><div class="qlabel">Tipo de evento</div>${opts("tipoEvento",TIPO_EVENTO,"radio",e.tipoEvento)}</div>
@@ -260,6 +271,15 @@ function renderForm(){
       ${opts("contenido",CONTENIDO,"checkbox",e.contenido)}
       <label class="f" for="notas">Observaciones<textarea id="notas">${esc(e.notas)}</textarea></label>
     </fieldset>
+    <fieldset><legend>6. Reporte para gerencia</legend>
+      <div class="row">
+        <label class="f" for="horaLlegada">Hora de llegada<input type="time" id="horaLlegada" value="${esc(e.horaLlegada)}"></label>
+        <label class="f" for="horaRetorno">Hora de retorno<input type="time" id="horaRetorno" value="${esc(e.horaRetorno)}"></label>
+      </div>
+      <label class="f" for="materialPop">Material POP <span class="hint">Uno por línea: pendón, exhibidor, mantel, volantes…</span><textarea id="materialPop">${esc(e.materialPop)}</textarea></label>
+      <label class="f" for="dinamicaPersonalizada">Dinámica personalizada <span class="hint">Si este comercio necesita algo especial</span><textarea id="dinamicaPersonalizada">${esc(e.dinamicaPersonalizada)}</textarea></label>
+      <label class="f" for="mensajeGerencia">Mensaje de solicitud para la gerencia<textarea id="mensajeGerencia" style="min-height:110px">${esc(e.mensajeGerencia)}</textarea></label>
+    </fieldset>
   </fieldset>
     <div class="actions" id="actions">
       ${canWrite?`<button type="submit" class="btn btn-primary">${isNew?"Guardar evento":"Guardar cambios"}</button>`:""}
@@ -270,6 +290,71 @@ function renderForm(){
   </form>`;
 }
 
+
+const WA="https:"+"/"+"/wa.me/?text=";
+function waText(e){
+  const L=[];
+  L.push("*Evento Deli Snacks*");
+  L.push("📅 "+prettyDate(e.fecha||selected));
+  L.push("🏪 "+(e.comercio||"Por definir"));
+  const ub=[e.ciudad,e.direccion].filter(Boolean).join(" - ");
+  if(ub) L.push("📍 "+ub+(e.referencia?" (Ref.: "+e.referencia+")":""));
+  L.push("🕐 Llegada: "+(e.horaLlegada||"por definir")+" · Evento: "+(e.horaInicio||"por definir")+(e.horaFin?" a "+e.horaFin:"")+" · Retorno: "+(e.horaRetorno||"por definir"));
+  if(e.responsable) L.push("👤 Responsable: "+e.responsable+(e.telefono?" ("+e.telefono+")":""));
+  if(e.maps) L.push("🗺️ "+e.maps);
+  return L.join("\n");
+}
+function toolsHtml(id,e){
+  return `<div class="tools"><a class="btn btn-wa" href="${WA+encodeURIComponent(waText(e))}" target="_blank" rel="noopener">Enviar por WhatsApp</a><button type="button" class="btn btn-primary" id="repBtn">Reporte para gerencia</button></div>`;
+}
+function fechaLarga(k){if(!k)return "Por definir";const [y,m,d]=k.split("-").map(Number);const dt=new Date(y,m-1,d);return DAYS[dt.getDay()]+" "+d+" de "+MONTHS[m-1]+" de "+y;}
+function listaHtml(t){const it=String(t||"").split(/\n|;/).map(x=>x.replace(/^[-•*\s]+/,"").trim()).filter(Boolean);return it.length?"<ul>"+it.map(i=>"<li>"+esc(i)+"</li>").join("")+"</ul>":'<p class="muted">No aplica.</p>';}
+function reportHtml(e){
+  const tipo=e.tipoEvento==="Otro"?(e.tipoEventoOtro||"Otro"):(e.tipoEvento||"Por definir");
+  const ubic=[e.ciudad,e.direccion].filter(Boolean).join(" · ")+(e.referencia?" (Ref.: "+e.referencia+")":"");
+  const horario=e.horaInicio?e.horaInicio+(e.horaFin?" a "+e.horaFin:""):"Por definir";
+  const din=(e.dinamicas||[]).concat(e.dinamicaOtra?[e.dinamicaOtra]:[]);
+  const hoy=new Date();
+  const fila=(k,v,hl)=>`<tr${hl?' class="hl"':''}><th>${k}</th><td>${esc(v||"Por definir")}</td></tr>`;
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reporte ${esc(e.fecha||"")} - ${esc(e.comercio||"evento")}</title><style>
+  @page{size:letter;margin:16mm}
+  body{font-family:Arial,Helvetica,sans-serif;color:#1E1A2B;font-size:11pt;margin:0 auto;max-width:760px;padding:18px;background:#fff}
+  .bar{display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px}.bar button{font:inherit;font-weight:bold;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;background:#A58CF4;color:#1E1A2B}.bar button.sec{background:#EEEAF8}
+  .top{border-top:8px solid #A58CF4;padding:16px 0 4px}.brand{font-size:9pt;letter-spacing:2px;color:#5B3FD1;font-weight:bold}
+  h1{font-size:21pt;margin:6px 0 2px}.sub{color:#6A6480;margin:0 0 12px}
+  h2{font-size:10.5pt;color:#5B3FD1;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #E4DEF4;padding-bottom:4px;margin:18px 0 8px}
+  table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #EEEAF8;vertical-align:top}
+  th{width:34%;color:#6A6480;font-weight:normal}td{font-weight:bold}.hl td,.hl th{background:#F1ECFE}
+  ul{margin:4px 0 0 18px;padding:0}li{margin:3px 0}.muted{color:#6A6480}
+  .msg{background:#F6F4FC;border-left:4px solid #A58CF4;padding:10px 12px;line-height:1.5}
+  .firma{margin-top:44px;display:flex;justify-content:space-between}.firma div{width:44%;border-top:1px solid #1E1A2B;padding-top:4px;font-size:9pt;color:#6A6480}
+  .foot{margin-top:24px;font-size:8.5pt;color:#6A6480}
+  @media print{.bar{display:none}body{padding:0}}
+  </style></head><body>
+  <div class="bar"><button class="sec" onclick="window.close()">Cerrar</button><button onclick="window.print()">Guardar PDF / Imprimir</button></div>
+  <div class="top"><div class="brand">DELI SNACKS · SALTY</div><h1>Planificación de actividad</h1><p class="sub">${esc(tipo)} en ${esc(e.comercio||"comercio aliado")}</p></div>
+  <h2>Datos de la jornada</h2><table>
+  ${fila("Día",fechaLarga(e.fecha))}${fila("Hora de llegada",e.horaLlegada,1)}${fila("Horario del evento",horario)}${fila("Hora de retorno",e.horaRetorno,1)}
+  ${fila("Comercio aliado",e.comercio)}${fila("Ubicación",ubic)}${fila("Responsable Deli Snacks",[e.responsable,e.telefono].filter(Boolean).join(" · "))}
+  </table>
+  <h2>Material POP</h2>${listaHtml(e.materialPop)}
+  <h2>Dinámicas del evento</h2>${din.length?"<ul>"+din.map(d=>"<li>"+esc(d)+"</li>").join("")+"</ul>":'<p class="muted">Por definir.</p>'}
+  ${e.dinamicaPersonalizada?`<h2>Dinámica personalizada</h2><p>${esc(e.dinamicaPersonalizada).replace(/\n/g,"<br>")}</p>`:""}
+  ${e.premios?`<h2>Premios u obsequios</h2>${listaHtml(e.premios)}`:""}
+  <h2>Solicitud a la gerencia</h2><div class="msg">${esc(e.mensajeGerencia||"").replace(/\n/g,"<br>")}</div>
+  <div class="firma"><div>Departamento de Marketing</div><div>Aprobado por Gerencia</div></div>
+  <p class="foot">Emitido el ${hoy.getDate()} de ${MONTHS[hoy.getMonth()]} de ${hoy.getFullYear()} · Preparado por Mulato Ediciones para Deli Snacks</p>
+  </body></html>`;
+}
+async function makeReport(){
+  const id=mode.id; const data=collect();
+  if(!data.comercio){toast("Escribe el nombre del comercio");return;}
+  const w=window.open("","_blank");
+  if(!w){toast("Tu navegador bloqueó la ventana del reporte. Permite las ventanas emergentes e intenta de nuevo.");return;}
+  w.document.open(); w.document.write(reportHtml(data)); w.document.close();
+  events[id]=data;
+  try{ await call("saveEvent",Object.assign({id},data)); }catch(e){ toast("El reporte se abrió, pero no se pudieron guardar los cambios."); }
+}
 function render(){renderCalendar(); mode.type==="form"?renderForm():renderDay();}
 
 function collect(){
@@ -281,7 +366,7 @@ function collect(){
     ciudad:v("ciudad"),direccion:v("direccion"),referencia:v("referencia"),maps:v("maps"),
     tipoEvento:radio("tipoEvento"),tipoEventoOtro:v("tipoEventoOtro"),descripcion:v("descripcion"),fecha:v("fecha")||selected,
     horaInicio:v("horaInicio"),horaFin:v("horaFin"),mascota:radio("mascota"),premios:v("premios"),
-    dinamicas:checks("dinamicas"),dinamicaOtra:v("dinamicaOtra"),contenido:checks("contenido"),notas:v("notas"),updatedAt:new Date().toISOString()};
+    dinamicas:checks("dinamicas"),dinamicaOtra:v("dinamicaOtra"),contenido:checks("contenido"),notas:v("notas"),horaLlegada:v("horaLlegada"),horaRetorno:v("horaRetorno"),materialPop:v("materialPop"),dinamicaPersonalizada:v("dinamicaPersonalizada"),mensajeGerencia:v("mensajeGerencia"),updatedAt:new Date().toISOString()};
 }
 
 const API_URL="https://script.google.com/macros/s/AKfycbx9KHH0uVp7ECdhWNXy9Wk9mBCExogjEkMemZlwRVVFf59rmfmIdQ0M2h2K5I8Ia9h67g/exec";
@@ -344,6 +429,7 @@ document.addEventListener("click",ev=>{
   else if(t.id==="del"){confirmDelete=true;renderForm();}
   else if(t.id==="delNo"){confirmDelete=false;renderForm();}
   else if(t.id==="delYes"){remove();}
+  else if(t.id==="repBtn"){makeReport();}
 });
 document.addEventListener("submit",ev=>{ev.preventDefault();if(canWrite)save();});
 
