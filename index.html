@@ -284,7 +284,7 @@ function collect(){
     dinamicas:checks("dinamicas"),dinamicaOtra:v("dinamicaOtra"),contenido:checks("contenido"),notas:v("notas"),updatedAt:new Date().toISOString()};
 }
 
-const API_URL="__API_URL__";
+const API_URL="https://script.google.com/macros/s/AKfycbx9KHH0uVp7ECdhWNXy9Wk9mBCExogjEkMemZlwRVVFf59rmfmIdQ0M2h2K5I8Ia9h67g/exec";
 async function call(fn,arg){
   let res;
   if(fn==="getEvents"){ res=await fetch(API_URL+"?action=list&t="+Date.now()); }
