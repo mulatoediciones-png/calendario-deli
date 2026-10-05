@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calendario de Eventos Deli Snacks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: month calendar on the left, a working panel on the right (day's events / event form); stacks on phones. */
+:root{
+  --bg:#FAF9FE; --surface:#FFFFFF; --ink:#1E1A2B; --muted:#6A6480; --line:#E4DEF4;
+  --lila:#A58CF4; --lila-ink:#5B3FD1; --lila-soft:#F1ECFE; --on-lila:#1E1A2B;
+  --warn:#B7791F; --warn-soft:#FDF3E1; --ok:#2F855A; --ok-soft:#E5F5EC; --done:#6A6480; --done-soft:#EEECF3;
+  --danger:#C53030;
+  --f-display:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#14121B; --surface:#1D1A27; --ink:#EEEAF8; --muted:#A39DB8; --line:#2E2940;
+  --lila:#B39FF7; --lila-ink:#C4B4FA; --lila-soft:#2A2340; --on-lila:#14121B;
+  --warn:#F0B95A; --warn-soft:#3A2E17; --ok:#6FD39C; --ok-soft:#173326; --done:#A39DB8; --done-soft:#26222F;
+  --danger:#F28B8B; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#14121B; --surface:#1D1A27; --ink:#EEEAF8; --muted:#A39DB8; --line:#2E2940;
+  --lila:#B39FF7; --lila-ink:#C4B4FA; --lila-soft:#2A2340; --on-lila:#14121B;
+  --warn:#F0B95A; --warn-soft:#3A2E17; --ok:#6FD39C; --ok-soft:#173326; --done:#A39DB8; --done-soft:#26222F;
+  --danger:#F28B8B; color-scheme:dark; }
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:22px 40px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px}
+.brand{font-family:var(--f-display);font-weight:800;letter-spacing:.08em;font-size:13px;color:var(--lila-ink)}
+.brand span{color:var(--lila)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);line-height:1.1;margin:4px 0 0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+
+/* calendar */
+.cal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.cal-head h2{font-family:var(--f-display);font-size:20px;margin:0;text-transform:capitalize}
+.nav{display:flex;gap:6px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;padding:7px 12px;font-weight:600;font-size:14px}
+.btn:hover{border-color:var(--lila)}
+.btn-primary{background:var(--lila);border-color:var(--lila);color:var(--on-lila)}
+.btn-primary:hover{filter:brightness(1.05)}
+.btn-danger{color:var(--danger)}
+.btn:focus-visible,.day:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.ev:focus-visible{outline:2px solid var(--lila-ink);outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.dow,.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.dow div{padding:8px 6px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center}
+.day{min-height:92px;border:0;border-top:1px solid var(--line);border-right:1px solid var(--line);background:transparent;color:var(--ink);text-align:left;padding:6px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.days .day:nth-child(7n){border-right:0}
+.day.out{color:var(--muted);opacity:.45}
+.day:hover{background:var(--lila-soft)}
+.day.sel{background:var(--lila-soft);box-shadow:inset 0 0 0 2px var(--lila)}
+.num{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.day.today .num{background:var(--lila);color:var(--on-lila);border-radius:6px;padding:0 6px;align-self:flex-start}
+.chip{font-size:11px;line-height:1.3;padding:2px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.s-pend{background:var(--warn-soft);color:var(--warn)}
+.s-conf{background:var(--ok-soft);color:var(--ok)}
+.s-done{background:var(--done-soft);color:var(--done)}
+.more{font-size:11px;color:var(--muted)}
+@media (max-width:560px){.day{min-height:58px;padding:4px}.chip{font-size:0;padding:0;height:6px;border-radius:3px}.more{display:none}}
+
+/* panel */
+.panel{padding:18px}
+.panel h3{font-family:var(--f-display);font-size:19px;margin:0 0 2px;text-transform:capitalize}
+.panel .meta{color:var(--muted);font-size:13px;margin:0 0 14px}
+.list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.ev{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:10px 12px}
+.ev:hover{border-color:var(--lila)}
+.ev strong{display:block;font-size:15px}
+.ev small{color:var(--muted);font-size:13px}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;margin-top:6px}
+.empty{border:1px dashed var(--line);border-radius:10px;padding:16px;color:var(--muted);font-size:14px;margin-bottom:14px}
+.notice{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:16px}
+
+/* form */
+form{display:flex;flex-direction:column;gap:18px}
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+legend{font-family:var(--f-display);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--lila-ink);padding:0;margin-bottom:6px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
+input[type=text],input[type=tel],input[type=url],input[type=date],input[type=time],textarea,select{font:inherit;font-size:14px;font-weight:400;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:64px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.row{grid-template-columns:1fr}}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:500;cursor:pointer;background:var(--bg)}
+.opt:has(input:checked){border-color:var(--lila);background:var(--lila-soft)}
+.opt input{accent-color:var(--lila-ink);margin:0}
+.qlabel{font-size:13px;font-weight:600}
+.actions{display:flex;gap:8px;flex-wrap:wrap;position:sticky;bottom:0;background:var(--surface);padding-top:10px;border-top:1px solid var(--line)}
+.actions .spacer{flex:1}
+.confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:var(--danger)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+footer{margin-top:22px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">MULATO <span>/</span> EDICIONES</div>
+      <h1>Eventos y degustaciones Deli Snacks</h1>
+      <p class="sub">Elige un día del calendario para ver o crear la planificación del evento. <span id="sync"></span></p>
+    </div>
+    <div class="legend" aria-label="Estados">
+      <span><i style="background:var(--warn)"></i>Por confirmar</span>
+      <span><i style="background:var(--ok)"></i>Confirmado</span>
+      <span><i style="background:var(--done)"></i>Realizado</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="card" aria-label="Calendario">
+      <div class="cal-head">
+        <h2 id="monthLabel"></h2>
+        <div class="nav">
+          <button class="btn" id="prev" aria-label="Mes anterior">‹</button>
+          <button class="btn" id="todayBtn">Hoy</button>
+          <button class="btn" id="next" aria-label="Mes siguiente">›</button>
+        </div>
+      </div>
+      <div class="dow"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
+      <div class="days" id="days"></div>
+    </section>
+
+    <aside class="card panel" id="panel" aria-live="polite"></aside>
+  </div>
+  <footer>Planificación preparada por Mulato Ediciones para el equipo de Deli Snacks.</footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const MONTHS=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const STATUS={pend:{t:"Por confirmar",c:"s-pend"},conf:{t:"Confirmado",c:"s-conf"},done:{t:"Realizado",c:"s-done"}};
+const TIPO_EVENTO=["Degustación","Aniversario del comercio","Inauguración","Activación en punto de venta","Otro"];
+const DINAMICAS=["Degustación de productos","Ruleta de premios","Síguenos en Instagram y gana","Votación del sabor favorito","Adivina el sabor","Compra mínima de $3: recibe un snack (minorista)","Compra mínima de un bulto: recibe un obsequio (mayorista)","Interacción con la mascota de la marca","Fotografías con clientes"];
+const CONTENIDO=["Publicación en colaboración con el comercio","Stories en vivo durante el evento","Videos de las dinámicas","Reacciones y entrevistas al público","Fotografías para redes","Video resumen del evento"];
+
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=iso(new Date());
+
+let view=new Date(); view.setDate(1);
+let selected=today;
+let events={};           // id -> data
+let mode={type:"day"};   // {type:"day"} | {type:"form", id}
+const canWrite=true; let dbState="loading", busy=false;
+let confirmDelete=false;
+
+const $=id=>document.getElementById(id);
+
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2200);}
+
+function byDate(date){return Object.entries(events).filter(([,e])=>e.fecha===date).sort((a,b)=>(a[1].horaInicio||"").localeCompare(b[1].horaInicio||""));}
+function title(e){return e.comercio||"Evento sin nombre";}
+
+function renderCalendar(){
+  $("monthLabel").textContent=MONTHS[view.getMonth()]+" "+view.getFullYear();
+  const first=new Date(view.getFullYear(),view.getMonth(),1);
+  const offset=(first.getDay()+6)%7;
+  const start=new Date(first); start.setDate(1-offset);
+  let html="";
+  for(let i=0;i<42;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i);
+    const k=iso(d), evs=byDate(k);
+    const cls=["day"]; if(d.getMonth()!==view.getMonth())cls.push("out"); if(k===today)cls.push("today"); if(k===selected)cls.push("sel");
+    const label=d.getDate()+" de "+MONTHS[d.getMonth()]+(evs.length?", "+evs.length+" evento"+(evs.length>1?"s":""):"");
+    html+=`<button class="${cls.join(" ")}" data-date="${k}" aria-label="${label}"><span class="num">${d.getDate()}</span>`+
+      evs.slice(0,2).map(([,e])=>`<span class="chip ${STATUS[e.estado||"pend"].c}">${esc(title(e))}</span>`).join("")+
+      (evs.length>2?`<span class="more">+${evs.length-2} más</span>`:"")+`</button>`;
+    if(i===34){const n=new Date(start);n.setDate(start.getDate()+35);if(n.getMonth()!==view.getMonth())break;}
+  }
+  $("days").innerHTML=html;
+}
+
+function prettyDate(k){const [y,m,d]=k.split("-").map(Number);const dt=new Date(y,m-1,d);return DAYS[dt.getDay()]+" "+d+" de "+MONTHS[m-1];}
+
+function noticeHtml(){
+  if(dbState==="off") return `<div class="notice">No se pudo conectar con la hoja de eventos. Revisa tu conexión; la página lo vuelve a intentar sola.</div>`;
+  return "";
+}
+
+function renderDay(){
+  const evs=byDate(selected);
+  let html=noticeHtml()+`<h3>${prettyDate(selected)}</h3><p class="meta">${evs.length?evs.length+" evento"+(evs.length>1?"s":"")+" este día":"Sin eventos este día"}</p>`;
+  if(dbState==="loading") html+=`<div class="empty">Cargando eventos…</div>`;
+  else if(evs.length){
+    html+=`<div class="list">`+evs.map(([id,e])=>{
+      const st=STATUS[e.estado||"pend"];
+      const hora=e.horaInicio?(e.horaInicio+(e.horaFin?" a "+e.horaFin:"")):"Hora por definir";
+      const lugar=[e.tipoEvento==="Otro"?(e.tipoEventoOtro||"Otro"):e.tipoEvento,e.ciudad].filter(Boolean).join(" · ");
+      return `<button class="ev" data-id="${id}"><strong>${esc(title(e))}</strong><small>${esc(hora)}${lugar?" · "+esc(lugar):""}</small><br><span class="pill ${st.c}">${st.t}</span></button>`;
+    }).join("")+`</div>`;
+  } else html+=`<div class="empty">Aún no hay eventos para este día. Crea uno para llenar su planificación: comercio, ubicación, horario, dinámicas y contenido.</div>`;
+  html+=`<button class="btn btn-primary" id="newEv" ${canWrite?"":"disabled"}>Nuevo evento</button>`;
+  $("panel").innerHTML=html;
+}
+
+function opts(name,list,type,values){
+  return `<div class="opts">`+list.map((o,i)=>{const id=name+"_"+i;const on=type==="radio"?values===o:(values||[]).includes(o);
+    return `<label class="opt" for="${id}"><input type="${type}" id="${id}" name="${name}" value="${esc(o)}" ${on?"checked":""}>${esc(o)}</label>`;}).join("")+`</div>`;
+}
+
+function renderForm(){
+  const isNew=!mode.id; const e=isNew?{fecha:selected,estado:"pend",mascota:"No"}:events[mode.id]||{};
+  const ro=canWrite?"":"disabled";
+  $("panel").innerHTML=noticeHtml()+`
+  <h3>${isNew?"Nuevo evento":esc(title(e))}</h3><p class="meta">${prettyDate(e.fecha||selected)}</p>
+  <form id="evForm" novalidate><fieldset ${ro} style="display:contents">
+    <fieldset><legend>Estado</legend>${opts("estado",Object.keys(STATUS).map(k=>STATUS[k].t),"radio",STATUS[e.estado||"pend"].t)}</fieldset>
+    <fieldset><legend>1. Información del cliente</legend>
+      <label class="f" for="comercio">Nombre del comercio<input type="text" id="comercio" value="${esc(e.comercio)}" required></label>
+      <label class="f" for="instagram">Instagram del comercio<input type="text" id="instagram" value="${esc(e.instagram)}" placeholder="@usuario"></label>
+      <div><div class="qlabel">Tipo de cliente</div>${opts("tipoCliente",["Mayorista","Minorista","Mixto"],"radio",e.tipoCliente)}</div>
+      <div class="row">
+        <label class="f" for="responsable">Responsable de Deli Snacks<input type="text" id="responsable" value="${esc(e.responsable)}"></label>
+        <label class="f" for="telefono">Número de contacto<input type="tel" id="telefono" value="${esc(e.telefono)}"></label>
+      </div>
+    </fieldset>
+    <fieldset><legend>2. Ubicación</legend>
+      <label class="f" for="ciudad">Ciudad<input type="text" id="ciudad" value="${esc(e.ciudad)}"></label>
+      <label class="f" for="direccion">Dirección exacta<input type="text" id="direccion" value="${esc(e.direccion)}"></label>
+      <label class="f" for="referencia">Punto de referencia<input type="text" id="referencia" value="${esc(e.referencia)}"></label>
+      <label class="f" for="maps">Enlace de Google Maps<input type="url" id="maps" value="${esc(e.maps)}" placeholder="https://maps.google.com/…"></label>
+      ${e.maps&&/^https?:\/\//.test(e.maps)?`<a href="${esc(e.maps)}" target="_blank" rel="noopener" style="color:var(--lila-ink);font-size:13px;font-weight:600">Abrir ubicación en Google Maps ↗</a>`:""}
+    </fieldset>
+    <fieldset><legend>3. Evento o degustación</legend>
+      <div><div class="qlabel">Tipo de evento</div>${opts("tipoEvento",TIPO_EVENTO,"radio",e.tipoEvento)}</div>
+      <label class="f" for="tipoEventoOtro">Si es otro, ¿cuál?<input type="text" id="tipoEventoOtro" value="${esc(e.tipoEventoOtro)}"></label>
+      <label class="f" for="descripcion">Descripción del evento<textarea id="descripcion">${esc(e.descripcion)}</textarea></label>
+      <label class="f" for="fecha">Fecha<input type="date" id="fecha" value="${esc(e.fecha||selected)}"></label>
+      <div class="row">
+        <label class="f" for="horaInicio">Hora de inicio<input type="time" id="horaInicio" value="${esc(e.horaInicio)}"></label>
+        <label class="f" for="horaFin">Hora de cierre<input type="time" id="horaFin" value="${esc(e.horaFin)}"></label>
+      </div>
+      <div><div class="qlabel">¿Participará la mascota de la marca?</div>${opts("mascota",["Sí","No"],"radio",e.mascota)}</div>
+      <label class="f" for="premios">Productos para premios u obsequios<input type="text" id="premios" value="${esc(e.premios)}"></label>
+    </fieldset>
+    <fieldset><legend>4. Dinámicas y actividades</legend>
+      ${opts("dinamicas",DINAMICAS,"checkbox",e.dinamicas)}
+      <label class="f" for="dinamicaOtra">Otra dinámica<input type="text" id="dinamicaOtra" value="${esc(e.dinamicaOtra)}"></label>
+    </fieldset>
+    <fieldset><legend>5. Contenido y cobertura</legend>
+      ${opts("contenido",CONTENIDO,"checkbox",e.contenido)}
+      <label class="f" for="notas">Observaciones<textarea id="notas">${esc(e.notas)}</textarea></label>
+    </fieldset>
+  </fieldset>
+    <div class="actions" id="actions">
+      ${canWrite?`<button type="submit" class="btn btn-primary">${isNew?"Guardar evento":"Guardar cambios"}</button>`:""}
+      <button type="button" class="btn" id="back">Volver</button>
+      <span class="spacer"></span>
+      ${!isNew&&canWrite?(confirmDelete?`<span class="confirm">¿Eliminar este evento? <button type="button" class="btn btn-danger" id="delYes">Eliminar</button><button type="button" class="btn" id="delNo">No</button></span>`:`<button type="button" class="btn btn-danger" id="del">Eliminar</button>`):""}
+    </div>
+  </form>`;
+}
+
+function render(){renderCalendar(); mode.type==="form"?renderForm():renderDay();}
+
+function collect(){
+  const v=id=>$(id).value.trim();
+  const radio=n=>{const x=document.querySelector(`input[name="${n}"]:checked`);return x?x.value:"";};
+  const checks=n=>[...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x=>x.value);
+  const estT=radio("estado"); const estado=Object.keys(STATUS).find(k=>STATUS[k].t===estT)||"pend";
+  return {estado,comercio:v("comercio"),instagram:v("instagram"),tipoCliente:radio("tipoCliente"),responsable:v("responsable"),telefono:v("telefono"),
+    ciudad:v("ciudad"),direccion:v("direccion"),referencia:v("referencia"),maps:v("maps"),
+    tipoEvento:radio("tipoEvento"),tipoEventoOtro:v("tipoEventoOtro"),descripcion:v("descripcion"),fecha:v("fecha")||selected,
+    horaInicio:v("horaInicio"),horaFin:v("horaFin"),mascota:radio("mascota"),premios:v("premios"),
+    dinamicas:checks("dinamicas"),dinamicaOtra:v("dinamicaOtra"),contenido:checks("contenido"),notas:v("notas"),updatedAt:new Date().toISOString()};
+}
+
+const API_URL="__API_URL__";
+async function call(fn,arg){
+  let res;
+  if(fn==="getEvents"){ res=await fetch(API_URL+"?action=list&t="+Date.now()); }
+  else{
+    const body=fn==="saveEvent"?{action:"save",event:arg}:{action:"delete",id:arg};
+    res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)});
+  }
+  const j=await res.json();
+  if(!j.ok) throw new Error(j.error||"Error");
+  return j.events;
+}
+
+function apply(list){
+  const next={}; (list||[]).forEach(e=>{if(e&&e.id){const id=e.id; const c=Object.assign({},e); delete c.id; next[id]=c;}});
+  events=next; dbState="ready";
+  const s=$("sync"); if(s){const d=new Date(); s.textContent="Actualizado "+pad(d.getHours())+":"+pad(d.getMinutes());}
+  if(mode.type==="form") renderCalendar(); else render();
+}
+
+async function load(){
+  if(busy) return;
+  try{ apply(await call("getEvents")); }
+  catch(e){ if(dbState!=="ready"){dbState="off"; if(mode.type!=="form") render();} }
+}
+
+async function save(){
+  const data=collect();
+  if(!data.comercio){$("comercio").focus();toast("Escribe el nombre del comercio");return;}
+  const id=mode.id||("ev"+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
+  busy=true; toast("Guardando…");
+  try{
+    const list=await call("saveEvent",Object.assign({id},data));
+    selected=data.fecha; const [y,m]=data.fecha.split("-").map(Number); view=new Date(y,m-1,1);
+    mode={type:"day"}; apply(list); toast("Evento guardado");
+  }catch(e){ toast("No se pudo guardar. Revisa tu conexión e intenta de nuevo."); }
+  finally{ busy=false; }
+}
+
+async function remove(){
+  const id=mode.id; busy=true;
+  try{
+    const list=await call("deleteEvent",id);
+    confirmDelete=false; mode={type:"day"}; apply(list); toast("Evento eliminado");
+  }catch(e){ toast("No se pudo eliminar. Intenta de nuevo."); }
+  finally{ busy=false; }
+}
+
+document.addEventListener("click",ev=>{
+  const t=ev.target.closest("button"); if(!t) return;
+  if(t.id==="prev"){view=new Date(view.getFullYear(),view.getMonth()-1,1);renderCalendar();}
+  else if(t.id==="next"){view=new Date(view.getFullYear(),view.getMonth()+1,1);renderCalendar();}
+  else if(t.id==="todayBtn"){view=new Date();view.setDate(1);selected=today;mode={type:"day"};render();}
+  else if(t.dataset.date){selected=t.dataset.date;const [y,m]=selected.split("-").map(Number);if(m-1!==view.getMonth())view=new Date(y,m-1,1);mode={type:"day"};confirmDelete=false;render();}
+  else if(t.id==="newEv"){mode={type:"form"};confirmDelete=false;render();$("comercio").focus();}
+  else if(t.dataset.id){mode={type:"form",id:t.dataset.id};confirmDelete=false;render();}
+  else if(t.id==="back"){mode={type:"day"};confirmDelete=false;render();}
+  else if(t.id==="del"){confirmDelete=true;renderForm();}
+  else if(t.id==="delNo"){confirmDelete=false;renderForm();}
+  else if(t.id==="delYes"){remove();}
+});
+document.addEventListener("submit",ev=>{ev.preventDefault();if(canWrite)save();});
+
+render();
+load();
+setInterval(()=>{ if(!document.hidden) load(); }, 10000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) load(); });
+</script>
+
+
+</body>
+</html>
