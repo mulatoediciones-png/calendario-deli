@@ -348,7 +348,8 @@ function autoReport(e){
   }
   if(!r.mensajeGerencia){
     const hor=e.horaInicio?(" en horario de "+e.horaInicio+(e.horaFin?" a "+e.horaFin:"")):"";
-    r.mensajeGerencia="Por medio de la presente, solicitamos su aprobación para realizar la "+tipo.toLowerCase()+" en "+(e.comercio||"el comercio aliado")+(e.ciudad?", "+e.ciudad:"")+", el "+fechaLarga(e.fecha)+hor+".\n\nPara esta actividad requerimos la asignación del material POP indicado, los productos para la degustación y los premios de las dinámicas, así como la autorización del traslado del equipo con llegada a las "+(r.horaLlegada||"hora por definir")+" y retorno a las "+(r.horaRetorno||"hora por definir")+".\n\nQuedamos atentos a sus comentarios.";
+    const act={"Degustación":"la degustación de productos","Aniversario del comercio":"la actividad de aniversario","Inauguración":"la activación por inauguración","Activación en punto de venta":"la activación en punto de venta"}[e.tipoEvento]||("la actividad "+(e.tipoEventoOtro?"«"+e.tipoEventoOtro+"»":"de degustación"));
+    r.mensajeGerencia="Por medio de la presente, solicitamos su aprobación para realizar "+act+" en "+(e.comercio||"el comercio aliado")+(e.ciudad?", "+e.ciudad:"")+", el "+fechaLarga(e.fecha)+hor+".\n\nPara esta actividad requerimos la asignación del material POP indicado, los productos para la degustación y los premios de las dinámicas, así como la autorización del traslado del equipo con llegada a las "+(r.horaLlegada||"hora por definir")+" y retorno a las "+(r.horaRetorno||"hora por definir")+".\n\nQuedamos atentos a sus comentarios.";
   }
   return r;
 }
