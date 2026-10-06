@@ -113,7 +113,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .report p{margin:0;font-size:13px;color:var(--muted)}
 .report .row2{display:flex;gap:8px;flex-wrap:wrap}
 .report .row2 input{flex:1;min-width:180px}
-.hint{font-size:12px;font-weight:400;color:var(--muted)}
+.hint{font-size:12px;font-weight:400;color:var(--muted);margin:0}
+details.adv{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+details.adv[open]{display:flex}details.adv summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--lila-ink)}
+details.adv>*:not(summary){margin-top:10px}
 </style>
 </head>
 <body>
@@ -228,7 +231,7 @@ function opts(name,list,type,values){
 }
 
 function renderForm(){
-  const isNew=!mode.id; const e=isNew?{fecha:selected,estado:"pend",mascota:"No",mensajeGerencia:DEFAULT_MSG}:events[mode.id]||{};
+  const isNew=!mode.id; const e=isNew?{fecha:selected,estado:"pend",mascota:"No"}:events[mode.id]||{};
   const ro=canWrite?"":"disabled";
   $("panel").innerHTML=noticeHtml()+`
   <h3>${isNew?"Nuevo evento":esc(title(e))}</h3><p class="meta">${prettyDate(e.fecha||selected)}</p>
@@ -271,15 +274,16 @@ function renderForm(){
       ${opts("contenido",CONTENIDO,"checkbox",e.contenido)}
       <label class="f" for="notas">Observaciones<textarea id="notas">${esc(e.notas)}</textarea></label>
     </fieldset>
-    <fieldset><legend>6. Reporte para gerencia</legend>
+    <details class="adv"><summary>Ajustar el reporte para gerencia (opcional)</summary>
+      <p class="hint">Todo esto se completa solo al generar el reporte. Escribe aquí únicamente si quieres cambiar algo.</p>
       <div class="row">
         <label class="f" for="horaLlegada">Hora de llegada<input type="time" id="horaLlegada" value="${esc(e.horaLlegada)}"></label>
         <label class="f" for="horaRetorno">Hora de retorno<input type="time" id="horaRetorno" value="${esc(e.horaRetorno)}"></label>
       </div>
-      <label class="f" for="materialPop">Material POP <span class="hint">Uno por línea: pendón, exhibidor, mantel, volantes…</span><textarea id="materialPop">${esc(e.materialPop)}</textarea></label>
-      <label class="f" for="dinamicaPersonalizada">Dinámica personalizada <span class="hint">Si este comercio necesita algo especial</span><textarea id="dinamicaPersonalizada">${esc(e.dinamicaPersonalizada)}</textarea></label>
-      <label class="f" for="mensajeGerencia">Mensaje de solicitud para la gerencia<textarea id="mensajeGerencia" style="min-height:110px">${esc(e.mensajeGerencia)}</textarea></label>
-    </fieldset>
+      <label class="f" for="materialPop">Material POP<textarea id="materialPop" placeholder="Automático según el evento">${esc(e.materialPop)}</textarea></label>
+      <label class="f" for="dinamicaPersonalizada">Dinámica personalizada<textarea id="dinamicaPersonalizada" placeholder="Automática según el tipo de evento y cliente">${esc(e.dinamicaPersonalizada)}</textarea></label>
+      <label class="f" for="mensajeGerencia">Mensaje para la gerencia<textarea id="mensajeGerencia" placeholder="Se redacta solo">${esc(e.mensajeGerencia)}</textarea></label>
+    </details>
   </fieldset>
     <div class="actions" id="actions">
       ${canWrite?`<button type="submit" class="btn btn-primary">${isNew?"Guardar evento":"Guardar cambios"}</button>`:""}
@@ -309,7 +313,47 @@ function toolsHtml(id,e){
 }
 function fechaLarga(k){if(!k)return "Por definir";const [y,m,d]=k.split("-").map(Number);const dt=new Date(y,m-1,d);return DAYS[dt.getDay()]+" "+d+" de "+MONTHS[m-1]+" de "+y;}
 function listaHtml(t){const it=String(t||"").split(/\n|;/).map(x=>x.replace(/^[-•*\s]+/,"").trim()).filter(Boolean);return it.length?"<ul>"+it.map(i=>"<li>"+esc(i)+"</li>").join("")+"</ul>":'<p class="muted">No aplica.</p>';}
+
+function addMin(t,m){if(!t)return "";const [h,mi]=t.split(":").map(Number);let x=h*60+mi+m;x=(x+1440)%1440;return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0");}
+function autoReport(e){
+  const r=Object.assign({},e);
+  const din=e.dinamicas||[];
+  const tipo=e.tipoEvento==="Otro"?(e.tipoEventoOtro||"actividad"):(e.tipoEvento||"degustación");
+  if(!r.horaLlegada) r.horaLlegada=e.horaInicio?addMin(e.horaInicio,-60):"";
+  if(!r.horaRetorno) r.horaRetorno=e.horaFin?addMin(e.horaFin,60):"";
+  if(!r.materialPop){
+    const m=["Pendón Deli Snacks y Salty","Mantel con los colores de la marca","Exhibidor de productos (Salty Rápido, Puffy y Bilo)","Vasitos o envases para degustación y servilletas","Código QR al Instagram @delisnacks_ve"];
+    if(din.includes("Ruleta de premios")) m.push("Ruleta de premios");
+    if(din.includes("Fotografías con clientes")||(e.contenido||[]).length) m.push("Backing o pendón para rincón de fotos");
+    if(e.mascota==="Sí"||din.includes("Interacción con la mascota de la marca")) m.push("Traje de la mascota de la marca");
+    if(din.includes("Votación del sabor favorito")) m.push("Pizarra o frascos para la votación de sabores");
+    if(din.includes("Adivina el sabor")) m.push("Antifaces para el juego Adivina el sabor");
+    if(e.tipoCliente==="Mayorista"||e.tipoCliente==="Mixto") m.push("Lista de precios al mayor y planilla de pedidos");
+    if(e.tipoCliente==="Minorista"||e.tipoCliente==="Mixto") m.push("Volantes con promoción para el consumidor");
+    if(e.tipoEvento==="Aniversario del comercio") m.push("Decoración de aniversario (globos o banderines)");
+    if(e.tipoEvento==="Inauguración") m.push("Cinta o arco de globos para la inauguración");
+    m.push("Toldo, mesa y extensión eléctrica (si el comercio no los provee)");
+    r.materialPop=m.join("\n");
+  }
+  if(!r.dinamicaPersonalizada){
+    const d=[];
+    if(e.tipoEvento==="Aniversario del comercio") d.push("Brindis Salty por el aniversario: a la hora pico se celebra con el público y se entrega un obsequio especial al comercio frente a cámara.");
+    if(e.tipoEvento==="Inauguración") d.push("Bienvenida Salty: los primeros clientes del día reciben un snack de regalo y se graba el corte de cinta con el aliado.");
+    if(e.tipoEvento==="Activación en punto de venta") d.push("Exhibición destacada en el punto de venta: se ordena el producto en anaquel y se invita a los clientes que pasan a probar en el momento.");
+    if(e.tipoCliente==="Mayorista") d.push("Estación de pedidos: los compradores que hagan pedido de un bulto o más durante el evento reciben un obsequio.");
+    else if(e.tipoCliente==="Minorista") d.push("Compra y gana: por compras desde $3 en productos Salty, el cliente recibe un snack adicional.");
+    else if(e.tipoCliente==="Mixto") d.push("Doble beneficio: compra mínima de $3 con snack de regalo para el consumidor y obsequio por bulto para comerciantes.");
+    if(!d.length) d.push("Degustación guiada de las tres líneas (Salty Rápido, Puffy y Bilo) con votación del sabor favorito del público.");
+    r.dinamicaPersonalizada=d.join("\n");
+  }
+  if(!r.mensajeGerencia){
+    const hor=e.horaInicio?(" en horario de "+e.horaInicio+(e.horaFin?" a "+e.horaFin:"")):"";
+    r.mensajeGerencia="Por medio de la presente, solicitamos su aprobación para realizar la "+tipo.toLowerCase()+" en "+(e.comercio||"el comercio aliado")+(e.ciudad?", "+e.ciudad:"")+", el "+fechaLarga(e.fecha)+hor+".\n\nPara esta actividad requerimos la asignación del material POP indicado, los productos para la degustación y los premios de las dinámicas, así como la autorización del traslado del equipo con llegada a las "+(r.horaLlegada||"hora por definir")+" y retorno a las "+(r.horaRetorno||"hora por definir")+".\n\nQuedamos atentos a sus comentarios.";
+  }
+  return r;
+}
 function reportHtml(e){
+  e=autoReport(e);
   const tipo=e.tipoEvento==="Otro"?(e.tipoEventoOtro||"Otro"):(e.tipoEvento||"Por definir");
   const ubic=[e.ciudad,e.direccion].filter(Boolean).join(" · ")+(e.referencia?" (Ref.: "+e.referencia+")":"");
   const horario=e.horaInicio?e.horaInicio+(e.horaFin?" a "+e.horaFin:""):"Por definir";
