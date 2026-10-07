@@ -67,6 +67,7 @@ button{font:inherit;cursor:pointer}
 .chip{font-size:11px;line-height:1.3;padding:2px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .s-pend{background:var(--warn-soft);color:var(--warn)}
 .s-conf{background:var(--ok-soft);color:var(--ok)}
+.s-no{background:var(--done-soft);color:var(--danger)}
 .s-done{background:var(--done-soft);color:var(--done)}
 .more{font-size:11px;color:var(--muted)}
 @media (max-width:560px){.day{min-height:58px;padding:4px}.chip{font-size:0;padding:0;height:6px;border-radius:3px}.more{display:none}}
@@ -117,6 +118,19 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 details.adv{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
 details.adv[open]{display:flex}details.adv summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--lila-ink)}
 details.adv>*:not(summary){margin-top:10px}
+.hbtns{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.evcard{display:flex;flex-direction:column;gap:6px}
+.links{display:flex;gap:12px;flex-wrap:wrap;padding-left:4px}
+.lnk{color:var(--lila-ink);font-size:13px;font-weight:600;text-decoration:none}
+.lnk:hover{text-decoration:underline}
+.mkt{border:1.5px solid var(--lila);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:18px;background:var(--lila-soft)}
+.mkt>h4{font-family:var(--f-display);margin:0;font-size:15px;color:var(--lila-ink)}
+.poplist{display:flex;flex-direction:column;gap:6px}
+.poprow{display:flex;align-items:center;gap:8px;justify-content:space-between;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.poprow label{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;flex:1;min-width:0}
+.poprow input[type=number]{width:84px;font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.poprow input[type=checkbox]{accent-color:var(--lila-ink)}
+.statusline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:0 0 14px}
 </style>
 </head>
 <body>
@@ -126,12 +140,16 @@ details.adv>*:not(summary){margin-top:10px}
     <div>
       <div class="brand">MULATO <span>/</span> EDICIONES</div>
       <h1>Eventos y degustaciones Deli Snacks</h1>
-      <p class="sub">Elige un día del calendario para ver o crear la planificación del evento. <span id="sync"></span></p>
+      <p class="sub">Elige un día del calendario para cargar o ver un evento. <span id="sync"></span></p>
     </div>
-    <div class="legend" aria-label="Estados">
-      <span><i style="background:var(--warn)"></i>Por confirmar</span>
-      <span><i style="background:var(--ok)"></i>Confirmado</span>
-      <span><i style="background:var(--done)"></i>Realizado</span>
+    <div class="hbtns">
+      <div class="legend" aria-label="Estados">
+        <span><i style="background:var(--warn)"></i>Por confirmar</span>
+        <span><i style="background:var(--ok)"></i>Confirmado</span>
+        <span><i style="background:var(--danger)"></i>No asistiremos</span>
+        <span><i style="background:var(--done)"></i>Realizado</span>
+      </div>
+      <button class="btn" id="mktBtn" type="button">Acceso marketing</button>
     </div>
   </header>
 
@@ -158,10 +176,12 @@ details.adv>*:not(summary){margin-top:10px}
 <script>
 const MONTHS=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
-const STATUS={pend:{t:"Por confirmar",c:"s-pend"},conf:{t:"Confirmado",c:"s-conf"},done:{t:"Realizado",c:"s-done"}};
+const STATUS={pend:{t:"Por confirmar",c:"s-pend"},conf:{t:"Confirmado",c:"s-conf"},no:{t:"No asistiremos",c:"s-no"},done:{t:"Realizado",c:"s-done"}};
+const ESTADOS_VE=["Amazonas","Anzoátegui","Apure","Aragua","Barinas","Bolívar","Carabobo","Cojedes","Delta Amacuro","Distrito Capital","Falcón","Guárico","La Guaira","Lara","Mérida","Miranda","Monagas","Nueva Esparta","Portuguesa","Sucre","Táchira","Trujillo","Yaracuy","Zulia"];
+const MKT_HASH="b73458a73d7f8ed2ff3e8050a24eaeb245886cd11284e8d5be9198bc9a32a886";
 const TIPO_EVENTO=["Degustación","Aniversario del comercio","Inauguración","Activación en punto de venta","Otro"];
 const DINAMICAS=["Degustación de productos","Ruleta de premios","Síguenos en Instagram y gana","Votación del sabor favorito","Adivina el sabor","Compra mínima de $3: recibe un snack (minorista)","Compra mínima de un bulto: recibe un obsequio (mayorista)","Interacción con la mascota de la marca","Fotografías con clientes"];
-const DEFAULT_MSG="Por medio de la presente, solicitamos su aprobación para la realización de esta actividad, así como la asignación del material POP, los productos para degustación y los premios indicados, y la autorización del traslado del equipo en el horario señalado.\n\nQuedamos atentos a sus comentarios.";
+const _DM="Por medio de la presente, solicitamos su aprobación para la realización de esta actividad, así como la asignación del material POP, los productos para degustación y los premios indicados, y la autorización del traslado del equipo en el horario señalado.\n\nQuedamos atentos a sus comentarios.";
 const POP=["Paraguas rojos con logo de Salty","Morrales pequeños","Bolsos pequeños","Discos de frisbi","Logo de Salty para el comercio","Lanyards","Llaveros"];
 const CONTENIDO=["Publicación en colaboración con el comercio","Stories en vivo durante el evento","Videos de las dinámicas","Reacciones y entrevistas al público","Fotografías para redes","Video resumen del evento"];
 
@@ -176,6 +196,7 @@ let events={};
 let mode={type:"day"};
 const canWrite=true; let dbState="loading", busy=false;
 let confirmDelete=false;
+let mkt=false; try{mkt=localStorage.getItem("deliMkt")==="1";}catch(e){}
 
 const $=id=>document.getElementById(id);
 
@@ -183,6 +204,12 @@ function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show")
 
 function byDate(date){return Object.entries(events).filter(([,e])=>e.fecha===date).sort((a,b)=>(a[1].horaInicio||"").localeCompare(b[1].horaInicio||""));}
 function title(e){return e.comercio||"Evento sin nombre";}
+function igUrl(v){v=String(v||"").trim();if(!v)return "";if(/^https?:/i.test(v))return v;v=v.replace(/^@/,"").replace(/^(www\.)?instagram\.com\//i,"").replace(/[\/\s]+$/,"");return v?"https://www.instagram.com/"+encodeURIComponent(v)+"/":"";}
+function mapsUrl(v){v=String(v||"").trim();if(!v)return "";return /^https?:/i.test(v)?v:"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(v);}
+function linksHtml(e){const a=[];const ig=igUrl(e.instagram),mp=mapsUrl(e.maps);
+  if(ig)a.push(`<a class="lnk" href="${esc(ig)}" target="_blank" rel="noopener">Instagram ↗</a>`);
+  if(mp)a.push(`<a class="lnk" href="${esc(mp)}" target="_blank" rel="noopener">Google Maps ↗</a>`);
+  return a.join("");}
 
 function renderCalendar(){
   $("monthLabel").textContent=MONTHS[view.getMonth()]+" "+view.getFullYear();
@@ -218,10 +245,11 @@ function renderDay(){
     html+=`<div class="list">`+evs.map(([id,e])=>{
       const st=STATUS[e.estado||"pend"];
       const hora=e.horaInicio?(e.horaInicio+(e.horaFin?" a "+e.horaFin:"")):"Hora por definir";
-      const lugar=[e.tipoEvento==="Otro"?(e.tipoEventoOtro||"Otro"):e.tipoEvento,e.ciudad].filter(Boolean).join(" · ");
-      return `<button class="ev" data-id="${id}"><strong>${esc(title(e))}</strong><small>${esc(hora)}${lugar?" · "+esc(lugar):""}</small><br><span class="pill ${st.c}">${st.t}</span></button>`;
+      const lugar=[e.tipoEvento==="Otro"?(e.tipoEventoOtro||"Otro"):e.tipoEvento,e.ciudad,e.estadoVE].filter(Boolean).join(" · ");
+      const lk=linksHtml(e);
+      return `<div class="evcard"><button class="ev" data-id="${id}"><strong>${esc(title(e))}</strong><small>${esc(hora)}${lugar?" · "+esc(lugar):""}</small><br><span class="pill ${st.c}">${st.t}</span></button>${lk?`<div class="links">${lk}</div>`:""}</div>`;
     }).join("")+`</div>`;
-  } else html+=`<div class="empty">Aún no hay eventos para este día. Crea uno para llenar su planificación: comercio, ubicación, horario, dinámicas y contenido.</div>`;
+  } else html+=`<div class="empty">Aún no hay eventos para este día. Toca "Nuevo evento" para cargar los datos del comercio, la ubicación, el horario y el encargado de Deli.</div>`;
   html+=`<button class="btn btn-primary" id="newEv" ${canWrite?"":"disabled"}>Nuevo evento</button>`;
   $("panel").innerHTML=html;
 }
@@ -231,31 +259,45 @@ function opts(name,list,type,values){
     return `<label class="opt" for="${id}"><input type="${type}" id="${id}" name="${name}" value="${esc(o)}" ${on?"checked":""}>${esc(o)}</label>`;}).join("")+`</div>`;
 }
 
+function popRows(e){
+  const sel={}; (Array.isArray(e.pop)?e.pop:[]).forEach(x=>{if(typeof x==="string")sel[x]="";else if(x&&x.n)sel[x.n]=x.c||"";});
+  return `<div class="poplist">`+POP.map((n,i)=>{const on=n in sel;
+    return `<div class="poprow"><label for="pop_${i}"><input type="checkbox" id="pop_${i}" name="pop" value="${esc(n)}" ${on?"checked":""}>${esc(n)}</label><input type="number" min="0" step="1" inputmode="numeric" id="popq_${i}" aria-label="Cantidad de ${esc(n)}" placeholder="Cant." value="${esc(on?sel[n]:"")}"></div>`;}).join("")+`</div>`;
+}
+function selectEstado(v){
+  return `<select id="estadoVE"><option value="">Selecciona el estado</option>${ESTADOS_VE.map(x=>`<option ${x===v?"selected":""}>${esc(x)}</option>`).join("")}</select>`;
+}
 function renderForm(){
   const isNew=!mode.id; const e=isNew?{fecha:selected,estado:"pend",mascota:"No"}:events[mode.id]||{};
-  const ro=canWrite?"":"disabled";
+  const st=STATUS[e.estado||"pend"];
   $("panel").innerHTML=noticeHtml()+`
   <h3>${isNew?"Nuevo evento":esc(title(e))}</h3><p class="meta">${prettyDate(e.fecha||selected)}</p>
-  ${isNew?"":toolsHtml(mode.id,e)}
-  <form id="evForm" novalidate><fieldset ${ro} style="display:contents">
-    <fieldset><legend>Estado</legend>${opts("estado",Object.keys(STATUS).map(k=>STATUS[k].t),"radio",STATUS[e.estado||"pend"].t)}</fieldset>
-    <fieldset><legend>1. Información del cliente</legend>
+  ${isNew?"":`<p class="statusline">Estado: <span class="pill ${st.c}" style="margin:0">${st.t}</span></p>`}
+  ${!isNew&&mkt?toolsHtml(mode.id,e):""}
+  <form id="evForm" novalidate>
+    <fieldset><legend>1. Datos del cliente</legend>
       <label class="f" for="comercio">Nombre del comercio<input type="text" id="comercio" value="${esc(e.comercio)}" required></label>
       <label class="f" for="instagram">Instagram del comercio<input type="text" id="instagram" value="${esc(e.instagram)}" placeholder="@usuario"></label>
+      <a class="lnk" id="igLink" href="${esc(igUrl(e.instagram))}" target="_blank" rel="noopener" ${igUrl(e.instagram)?"":"hidden"}>Abrir perfil en Instagram ↗</a>
       <div><div class="qlabel">Tipo de cliente</div>${opts("tipoCliente",["Mayorista","Minorista","Mixto"],"radio",e.tipoCliente)}</div>
+    </fieldset>
+    <fieldset><legend>2. Encargado de Deli Snacks</legend>
       <div class="row">
-        <label class="f" for="responsable">Responsable de Deli Snacks<input type="text" id="responsable" value="${esc(e.responsable)}"></label>
-        <label class="f" for="telefono">Número de contacto<input type="tel" id="telefono" value="${esc(e.telefono)}"></label>
+        <label class="f" for="responsable">Nombre del encargado<input type="text" id="responsable" value="${esc(e.responsable)}"></label>
+        <label class="f" for="telefono">Teléfono<input type="tel" id="telefono" value="${esc(e.telefono)}"></label>
       </div>
     </fieldset>
-    <fieldset><legend>2. Ubicación</legend>
-      <label class="f" for="ciudad">Ciudad<input type="text" id="ciudad" value="${esc(e.ciudad)}"></label>
+    <fieldset><legend>3. Ubicación</legend>
+      <div class="row">
+        <label class="f" for="estadoVE">Estado${selectEstado(e.estadoVE)}</label>
+        <label class="f" for="ciudad">Ciudad<input type="text" id="ciudad" value="${esc(e.ciudad)}"></label>
+      </div>
       <label class="f" for="direccion">Dirección exacta<input type="text" id="direccion" value="${esc(e.direccion)}"></label>
       <label class="f" for="referencia">Punto de referencia<input type="text" id="referencia" value="${esc(e.referencia)}"></label>
       <label class="f" for="maps">Enlace de Google Maps<input type="url" id="maps" value="${esc(e.maps)}" placeholder="Pega aquí el enlace de Google Maps"></label>
-      ${e.maps&&e.maps.indexOf("http")===0?`<a href="${esc(e.maps)}" target="_blank" rel="noopener" style="color:var(--lila-ink);font-size:13px;font-weight:600">Abrir ubicación en Google Maps ↗</a>`:""}
+      <a class="lnk" id="mapsLink" href="${esc(mapsUrl(e.maps))}" target="_blank" rel="noopener" ${mapsUrl(e.maps)?"":"hidden"}>Abrir ubicación en Google Maps ↗</a>
     </fieldset>
-    <fieldset><legend>3. Evento o degustación</legend>
+    <fieldset><legend>4. Datos del evento</legend>
       <div><div class="qlabel">Tipo de evento</div>${opts("tipoEvento",TIPO_EVENTO,"radio",e.tipoEvento)}</div>
       <label class="f" for="tipoEventoOtro">Si es otro, ¿cuál?<input type="text" id="tipoEventoOtro" value="${esc(e.tipoEventoOtro)}"></label>
       <label class="f" for="descripcion">Descripción del evento<textarea id="descripcion">${esc(e.descripcion)}</textarea></label>
@@ -265,39 +307,58 @@ function renderForm(){
         <label class="f" for="horaFin">Hora de cierre<input type="time" id="horaFin" value="${esc(e.horaFin)}"></label>
       </div>
       <div><div class="qlabel">¿Participará la mascota de la marca?</div>${opts("mascota",["Sí","No"],"radio",e.mascota)}</div>
+      <label class="f" for="notas">Observaciones del supervisor<textarea id="notas">${esc(e.notas)}</textarea></label>
+    </fieldset>
+    ${mkt?`<div class="mkt"><h4>Solo marketing</h4>
+      <fieldset><legend>¿Asistiremos?</legend>${opts("estado",Object.keys(STATUS).map(k=>STATUS[k].t),"radio",st.t)}</fieldset>
+      <fieldset><legend>Dinámicas</legend>
+        ${opts("dinamicas",DINAMICAS,"checkbox",e.dinamicas)}
+        <label class="f" for="dinamicaOtra">Otra dinámica<input type="text" id="dinamicaOtra" value="${esc(e.dinamicaOtra)}"></label>
+      </fieldset>
+      <fieldset><legend>Material POP a solicitar</legend>
+        <p class="hint">Marca el material y escribe la cantidad en unidades.</p>
+        ${popRows(e)}
+        <label class="f" for="materialPop">Otro material <span class="hint">Uno por línea, con su cantidad</span><textarea id="materialPop">${esc(e.materialPop)}</textarea></label>
+      </fieldset>
       <label class="f" for="premios">Productos para premios u obsequios<input type="text" id="premios" value="${esc(e.premios)}"></label>
-    </fieldset>
-    <fieldset><legend>4. Dinámicas y actividades</legend>
-      ${opts("dinamicas",DINAMICAS,"checkbox",e.dinamicas)}
-      <label class="f" for="dinamicaOtra">Otra dinámica<input type="text" id="dinamicaOtra" value="${esc(e.dinamicaOtra)}"></label>
-    </fieldset>
-    <fieldset><legend>Material POP</legend>
-      <p class="hint">Marca lo que se lleva a este evento. Esto es lo que sale en el reporte para gerencia.</p>
-      ${opts("pop",POP,"checkbox",Array.isArray(e.pop)?e.pop:POP)}
-    </fieldset>
-    <fieldset><legend>5. Contenido y cobertura</legend>
-      ${opts("contenido",CONTENIDO,"checkbox",e.contenido)}
-      <label class="f" for="notas">Observaciones<textarea id="notas">${esc(e.notas)}</textarea></label>
-    </fieldset>
-    <details class="adv"><summary>Ajustar el reporte para gerencia (opcional)</summary>
-      <p class="hint">Todo esto se completa solo al generar el reporte. Escribe aquí únicamente si quieres cambiar algo.</p>
-      <div class="row">
-        <label class="f" for="horaLlegada">Hora de llegada<input type="time" id="horaLlegada" value="${esc(e.horaLlegada)}"></label>
-        <label class="f" for="horaRetorno">Hora de retorno<input type="time" id="horaRetorno" value="${esc(e.horaRetorno)}"></label>
-      </div>
-      <label class="f" for="materialPop">Otro material (opcional) <span class="hint">Uno por línea, si llevan algo fuera de la lista</span><textarea id="materialPop">${esc(e.materialPop)}</textarea></label>
-      <label class="f" for="dinamicaPersonalizada">Dinámica personalizada<textarea id="dinamicaPersonalizada" placeholder="Automática según el tipo de evento y cliente">${esc(e.dinamicaPersonalizada)}</textarea></label>
-      <label class="f" for="mensajeGerencia">Mensaje para la gerencia<textarea id="mensajeGerencia" placeholder="Se redacta solo">${esc(e.mensajeGerencia)}</textarea></label>
-    </details>
-  </fieldset>
+      <fieldset><legend>Contenido y cobertura</legend>${opts("contenido",CONTENIDO,"checkbox",e.contenido)}</fieldset>
+      <details class="adv"><summary>Ajustar el reporte para gerencia (opcional)</summary>
+        <p class="hint">Se completa solo al generar el reporte. Escribe aquí únicamente si quieres cambiar algo.</p>
+        <div class="row">
+          <label class="f" for="horaLlegada">Hora de llegada<input type="time" id="horaLlegada" value="${esc(e.horaLlegada)}"></label>
+          <label class="f" for="horaRetorno">Hora de retorno<input type="time" id="horaRetorno" value="${esc(e.horaRetorno)}"></label>
+        </div>
+        <label class="f" for="dinamicaPersonalizada">Dinámica personalizada<textarea id="dinamicaPersonalizada" placeholder="Automática según el tipo de evento y cliente">${esc(e.dinamicaPersonalizada)}</textarea></label>
+        <label class="f" for="mensajeGerencia">Mensaje para la gerencia<textarea id="mensajeGerencia" placeholder="Se redacta solo">${esc(e.mensajeGerencia)}</textarea></label>
+      </details>
+    </div>`:""}
     <div class="actions" id="actions">
-      ${canWrite?`<button type="submit" class="btn btn-primary">${isNew?"Guardar evento":"Guardar cambios"}</button>`:""}
+      <button type="submit" class="btn btn-primary">${isNew?"Guardar evento":"Guardar cambios"}</button>
       <button type="button" class="btn" id="back">Volver</button>
       <span class="spacer"></span>
-      ${!isNew&&canWrite?(confirmDelete?`<span class="confirm">¿Eliminar este evento? <button type="button" class="btn btn-danger" id="delYes">Eliminar</button><button type="button" class="btn" id="delNo">No</button></span>`:`<button type="button" class="btn btn-danger" id="del">Eliminar</button>`):""}
+      ${!isNew&&mkt?(confirmDelete?`<span class="confirm">¿Eliminar este evento? <button type="button" class="btn btn-danger" id="delYes">Eliminar</button><button type="button" class="btn" id="delNo">No</button></span>`:`<button type="button" class="btn btn-danger" id="del">Eliminar</button>`):""}
     </div>
   </form>`;
 }
+function renderLogin(){
+  $("panel").innerHTML=`<h3>Acceso marketing</h3><p class="meta">Para confirmar eventos, elegir dinámicas y material POP, y generar el reporte para gerencia.</p>
+  <form id="loginForm" novalidate style="gap:12px">
+    <label class="f" for="clave">Clave<input type="password" id="clave" autocomplete="current-password"></label>
+    <div class="actions" style="position:static"><button type="submit" class="btn btn-primary">Entrar</button><button type="button" class="btn" id="back">Cancelar</button></div>
+  </form>`;
+  $("clave").focus();
+}
+async function doLogin(){
+  const v=$("clave").value;
+  try{
+    const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));
+    const hex=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+    if(hex!==MKT_HASH){toast("Clave incorrecta");$("clave").select();return;}
+  }catch(e){toast("No se pudo verificar la clave en este navegador");return;}
+  mkt=true; try{localStorage.setItem("deliMkt","1");}catch(e){}
+  updMktBtn(); mode={type:"day"}; render(); toast("Modo marketing activado");
+}
+function updMktBtn(){const b=$("mktBtn"); if(b) b.textContent=mkt?"Marketing ✓ · Salir":"Acceso marketing";}
 
 
 const WA="https:"+"/"+"/wa.me/?text=";
@@ -306,18 +367,19 @@ function waText(e){
   L.push("*Evento Deli Snacks*");
   L.push("📅 "+prettyDate(e.fecha||selected));
   L.push("🏪 "+(e.comercio||"Por definir"));
-  const ub=[e.ciudad,e.direccion].filter(Boolean).join(" - ");
+  const ub=[e.direccion,e.ciudad,e.estadoVE].filter(Boolean).join(" - ");
   if(ub) L.push("📍 "+ub+(e.referencia?" (Ref.: "+e.referencia+")":""));
   L.push("🕐 Llegada: "+(e.horaLlegada||"por definir")+" · Evento: "+(e.horaInicio||"por definir")+(e.horaFin?" a "+e.horaFin:"")+" · Retorno: "+(e.horaRetorno||"por definir"));
   if(e.responsable) L.push("👤 Responsable: "+e.responsable+(e.telefono?" ("+e.telefono+")":""));
-  if(e.maps) L.push("🗺️ "+e.maps);
+  if(mapsUrl(e.maps)) L.push("🗺️ "+mapsUrl(e.maps));
+  if(igUrl(e.instagram)) L.push("📸 "+igUrl(e.instagram));
   return L.join("\n");
 }
 function toolsHtml(id,e){
   return `<div class="tools"><a class="btn btn-wa" href="${WA+encodeURIComponent(waText(e))}" target="_blank" rel="noopener">Enviar por WhatsApp</a><button type="button" class="btn btn-primary" id="repBtn">Reporte para gerencia</button></div>`;
 }
 function fechaLarga(k){if(!k)return "Por definir";const [y,m,d]=k.split("-").map(Number);const dt=new Date(y,m-1,d);return DAYS[dt.getDay()]+" "+d+" de "+MONTHS[m-1]+" de "+y;}
-function listaHtml(t){const it=String(t||"").split(/\n|;/).map(x=>x.replace(/^[-•*\s]+/,"").trim()).filter(Boolean);return it.length?"<ul>"+it.map(i=>"<li>"+esc(i)+"</li>").join("")+"</ul>":'<p class="muted">No aplica.</p>';}
+function listaHtml(t,vacio){const it=String(t||"").split(/\n|;/).map(x=>x.replace(/^[-•*\s]+/,"").trim()).filter(Boolean);return it.length?"<ul>"+it.map(i=>"<li>"+esc(i)+"</li>").join("")+"</ul>":'<p class="muted">'+(vacio||"No aplica.")+'</p>';}
 
 function addMin(t,m){if(!t)return "";const [h,mi]=t.split(":").map(Number);let x=h*60+mi+m;x=(x+1440)%1440;return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0");}
 function autoReport(e){
@@ -327,7 +389,8 @@ function autoReport(e){
   if(!r.horaLlegada) r.horaLlegada=e.horaInicio?addMin(e.horaInicio,-60):"";
   if(!r.horaRetorno) r.horaRetorno=e.horaFin?addMin(e.horaFin,60):"";
   const extra=String(e.materialPop||"").split(/\n|;/).map(x=>x.trim()).filter(Boolean);
-  r.materialPop=(Array.isArray(e.pop)?e.pop:POP).concat(extra).join("\n");
+  const sel=(Array.isArray(e.pop)?e.pop:[]).map(x=>typeof x==="string"?x:(x.n+(x.c?" — "+x.c+" unidades":"")));
+  r.materialPop=sel.concat(extra).join("\n");
   if(!r.dinamicaPersonalizada){
     const d=[];
     if(e.tipoEvento==="Aniversario del comercio") d.push("Brindis Salty por el aniversario: a la hora pico se celebra con el público y se entrega un obsequio especial al comercio frente a cámara.");
@@ -349,7 +412,7 @@ function autoReport(e){
 function reportHtml(e){
   e=autoReport(e);
   const tipo=e.tipoEvento==="Otro"?(e.tipoEventoOtro||"Otro"):(e.tipoEvento||"Por definir");
-  const ubic=[e.ciudad,e.direccion].filter(Boolean).join(" · ")+(e.referencia?" (Ref.: "+e.referencia+")":"");
+  const ubic=[e.direccion,e.ciudad,e.estadoVE].filter(Boolean).join(" · ")+(e.referencia?" (Ref.: "+e.referencia+")":"");
   const horario=e.horaInicio?e.horaInicio+(e.horaFin?" a "+e.horaFin:""):"Por definir";
   const din=(e.dinamicas||[]).concat(e.dinamicaOtra?[e.dinamicaOtra]:[]);
   const hoy=new Date();
@@ -362,7 +425,7 @@ function reportHtml(e){
   h1{font-size:21pt;margin:6px 0 2px}.sub{color:#6A6480;margin:0 0 12px}
   h2{font-size:10.5pt;color:#5B3FD1;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #E4DEF4;padding-bottom:4px;margin:18px 0 8px}
   table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #EEEAF8;vertical-align:top}
-  th{width:34%;color:#6A6480;font-weight:normal}td{font-weight:bold}.hl td,.hl th{background:#F1ECFE}
+  th{width:34%;color:#6A6480;font-weight:normal}td{font-weight:bold}td a{color:#5B3FD1}.hl td,.hl th{background:#F1ECFE}
   ul{margin:4px 0 0 18px;padding:0}li{margin:3px 0}.muted{color:#6A6480}
   .msg{background:#F6F4FC;border-left:4px solid #A58CF4;padding:10px 12px;line-height:1.5}
   .firma{margin-top:44px;display:flex;justify-content:space-between}.firma div{width:44%;border-top:1px solid #1E1A2B;padding-top:4px;font-size:9pt;color:#6A6480}
@@ -373,9 +436,9 @@ function reportHtml(e){
   <div class="top"><div class="brand">DELI SNACKS · SALTY</div><h1>Planificación de actividad</h1><p class="sub">${esc(tipo)} en ${esc(e.comercio||"comercio aliado")}</p></div>
   <h2>Datos de la jornada</h2><table>
   ${fila("Día",fechaLarga(e.fecha))}${fila("Hora de llegada",e.horaLlegada,1)}${fila("Horario del evento",horario)}${fila("Hora de retorno",e.horaRetorno,1)}
-  ${fila("Comercio aliado",e.comercio)}${fila("Ubicación",ubic)}${fila("Responsable Deli Snacks",[e.responsable,e.telefono].filter(Boolean).join(" · "))}
+  ${fila("Comercio aliado",e.comercio)}${igUrl(e.instagram)?`<tr><th>Instagram</th><td><a href="${esc(igUrl(e.instagram))}">${esc(e.instagram)}</a></td></tr>`:""}${fila("Ubicación",ubic)}${mapsUrl(e.maps)?`<tr><th>Google Maps</th><td><a href="${esc(mapsUrl(e.maps))}">Ver ubicación</a></td></tr>`:""}${fila("Responsable Deli Snacks",[e.responsable,e.telefono].filter(Boolean).join(" · "))}
   </table>
-  <h2>Material POP</h2>${listaHtml(e.materialPop)}
+  <h2>Material POP solicitado</h2>${listaHtml(e.materialPop,"Por definir.")}
   <h2>Dinámicas del evento</h2>${din.length?"<ul>"+din.map(d=>"<li>"+esc(d)+"</li>").join("")+"</ul>":'<p class="muted">Por definir.</p>'}
   ${e.dinamicaPersonalizada?`<h2>Dinámica personalizada</h2><p>${esc(e.dinamicaPersonalizada).replace(/\n/g,"<br>")}</p>`:""}
   ${e.premios?`<h2>Premios u obsequios</h2>${listaHtml(e.premios)}`:""}
@@ -393,18 +456,24 @@ async function makeReport(){
   events[id]=data;
   try{ await call("saveEvent",Object.assign({id},data)); }catch(e){ toast("El reporte se abrió, pero no se pudieron guardar los cambios."); }
 }
-function render(){renderCalendar(); mode.type==="form"?renderForm():renderDay();}
+function render(){renderCalendar(); mode.type==="form"?renderForm():mode.type==="login"?renderLogin():renderDay();}
 
 function collect(){
-  const v=id=>$(id).value.trim();
-  const radio=n=>{const x=document.querySelector(`input[name="${n}"]:checked`);return x?x.value:"";};
-  const checks=n=>[...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x=>x.value);
-  const estT=radio("estado"); const estado=Object.keys(STATUS).find(k=>STATUS[k].t===estT)||"pend";
-  return {estado,comercio:v("comercio"),instagram:v("instagram"),tipoCliente:radio("tipoCliente"),responsable:v("responsable"),telefono:v("telefono"),
-    ciudad:v("ciudad"),direccion:v("direccion"),referencia:v("referencia"),maps:v("maps"),
-    tipoEvento:radio("tipoEvento"),tipoEventoOtro:v("tipoEventoOtro"),descripcion:v("descripcion"),fecha:v("fecha")||selected,
-    horaInicio:v("horaInicio"),horaFin:v("horaFin"),mascota:radio("mascota"),premios:v("premios"),
-    dinamicas:checks("dinamicas"),dinamicaOtra:v("dinamicaOtra"),contenido:checks("contenido"),notas:v("notas"),pop:checks("pop"),horaLlegada:v("horaLlegada"),horaRetorno:v("horaRetorno"),materialPop:v("materialPop"),dinamicaPersonalizada:v("dinamicaPersonalizada"),mensajeGerencia:v("mensajeGerencia"),updatedAt:new Date().toISOString()};
+  const base=Object.assign({},mode.id?events[mode.id]:{});
+  const txt=(k,id)=>{const el=$(id); if(el) base[k]=el.value.trim();};
+  const grp=n=>document.querySelector(`input[name="${n}"]`);
+  const radio=(k,n)=>{if(grp(n)){const x=document.querySelector(`input[name="${n}"]:checked`);base[k]=x?x.value:"";}};
+  const checks=(k,n)=>{if(grp(n)) base[k]=[...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x=>x.value);};
+  ["comercio","instagram","responsable","telefono","estadoVE","ciudad","direccion","referencia","maps","tipoEventoOtro","descripcion","fecha","horaInicio","horaFin","notas",
+   "dinamicaOtra","materialPop","premios","horaLlegada","horaRetorno","dinamicaPersonalizada","mensajeGerencia"].forEach(k=>txt(k,k));
+  radio("tipoCliente","tipoCliente"); radio("tipoEvento","tipoEvento"); radio("mascota","mascota");
+  checks("dinamicas","dinamicas"); checks("contenido","contenido");
+  if(grp("estado")){const t=(document.querySelector('input[name="estado"]:checked')||{}).value;base.estado=Object.keys(STATUS).find(k=>STATUS[k].t===t)||"pend";}
+  if(!base.estado) base.estado="pend";
+  if(grp("pop")) base.pop=POP.map((n,i)=>$("pop_"+i).checked?{n,c:$("popq_"+i).value.trim()}:null).filter(Boolean);
+  if(!base.fecha) base.fecha=selected;
+  base.updatedAt=new Date().toISOString();
+  return base;
 }
 
 const API_URL="https://script.google.com/macros/s/AKfycbx9KHH0uVp7ECdhWNXy9Wk9mBCExogjEkMemZlwRVVFf59rmfmIdQ0M2h2K5I8Ia9h67g/exec";
@@ -424,7 +493,7 @@ function apply(list){
   const next={}; (list||[]).forEach(e=>{if(e&&e.id){const id=e.id; const c=Object.assign({},e); delete c.id; next[id]=c;}});
   events=next; dbState="ready";
   const s=$("sync"); if(s){const d=new Date(); s.textContent="Actualizado "+pad(d.getHours())+":"+pad(d.getMinutes());}
-  if(mode.type==="form") renderCalendar(); else render();
+  if(mode.type==="form"||mode.type==="login") renderCalendar(); else render();
 }
 
 async function load(){
@@ -468,9 +537,17 @@ document.addEventListener("click",ev=>{
   else if(t.id==="delNo"){confirmDelete=false;renderForm();}
   else if(t.id==="delYes"){remove();}
   else if(t.id==="repBtn"){makeReport();}
+  else if(t.id==="mktBtn"){ if(mkt){mkt=false;try{localStorage.removeItem("deliMkt");}catch(e){}updMktBtn();mode={type:"day"};render();toast("Saliste del modo marketing");} else {mode={type:"login"};render();} }
 });
-document.addEventListener("submit",ev=>{ev.preventDefault();if(canWrite)save();});
+document.addEventListener("submit",ev=>{ev.preventDefault(); if(ev.target.id==="loginForm") doLogin(); else if(canWrite) save();});
+document.addEventListener("input",ev=>{
+  const t=ev.target;
+  if(t.id==="instagram"){const l=$("igLink"),u=igUrl(t.value);if(l){l.href=u||"#";l.hidden=!u;}}
+  if(t.id==="maps"){const l=$("mapsLink"),u=mapsUrl(t.value);if(l){l.href=u||"#";l.hidden=!u;}}
+  if(t.id&&t.id.indexOf("popq_")===0&&t.value){const c=$("pop_"+t.id.slice(5));if(c)c.checked=true;}
+});
 
+updMktBtn();
 render();
 load();
 setInterval(()=>{ if(!document.hidden) load(); }, 10000);
