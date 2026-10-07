@@ -162,6 +162,7 @@ const STATUS={pend:{t:"Por confirmar",c:"s-pend"},conf:{t:"Confirmado",c:"s-conf
 const TIPO_EVENTO=["Degustación","Aniversario del comercio","Inauguración","Activación en punto de venta","Otro"];
 const DINAMICAS=["Degustación de productos","Ruleta de premios","Síguenos en Instagram y gana","Votación del sabor favorito","Adivina el sabor","Compra mínima de $3: recibe un snack (minorista)","Compra mínima de un bulto: recibe un obsequio (mayorista)","Interacción con la mascota de la marca","Fotografías con clientes"];
 const DEFAULT_MSG="Por medio de la presente, solicitamos su aprobación para la realización de esta actividad, así como la asignación del material POP, los productos para degustación y los premios indicados, y la autorización del traslado del equipo en el horario señalado.\n\nQuedamos atentos a sus comentarios.";
+const POP=["Paraguas rojos con logo de Salty","Morrales pequeños","Bolsos pequeños","Discos de frisbi","Logo de Salty para el comercio","Lanyards","Llaveros"];
 const CONTENIDO=["Publicación en colaboración con el comercio","Stories en vivo durante el evento","Videos de las dinámicas","Reacciones y entrevistas al público","Fotografías para redes","Video resumen del evento"];
 
 const pad=n=>String(n).padStart(2,"0");
@@ -270,6 +271,10 @@ function renderForm(){
       ${opts("dinamicas",DINAMICAS,"checkbox",e.dinamicas)}
       <label class="f" for="dinamicaOtra">Otra dinámica<input type="text" id="dinamicaOtra" value="${esc(e.dinamicaOtra)}"></label>
     </fieldset>
+    <fieldset><legend>Material POP</legend>
+      <p class="hint">Marca lo que se lleva a este evento. Esto es lo que sale en el reporte para gerencia.</p>
+      ${opts("pop",POP,"checkbox",Array.isArray(e.pop)?e.pop:POP)}
+    </fieldset>
     <fieldset><legend>5. Contenido y cobertura</legend>
       ${opts("contenido",CONTENIDO,"checkbox",e.contenido)}
       <label class="f" for="notas">Observaciones<textarea id="notas">${esc(e.notas)}</textarea></label>
@@ -280,7 +285,7 @@ function renderForm(){
         <label class="f" for="horaLlegada">Hora de llegada<input type="time" id="horaLlegada" value="${esc(e.horaLlegada)}"></label>
         <label class="f" for="horaRetorno">Hora de retorno<input type="time" id="horaRetorno" value="${esc(e.horaRetorno)}"></label>
       </div>
-      <label class="f" for="materialPop">Material POP<textarea id="materialPop" placeholder="Automático según el evento">${esc(e.materialPop)}</textarea></label>
+      <label class="f" for="materialPop">Otro material (opcional) <span class="hint">Uno por línea, si llevan algo fuera de la lista</span><textarea id="materialPop">${esc(e.materialPop)}</textarea></label>
       <label class="f" for="dinamicaPersonalizada">Dinámica personalizada<textarea id="dinamicaPersonalizada" placeholder="Automática según el tipo de evento y cliente">${esc(e.dinamicaPersonalizada)}</textarea></label>
       <label class="f" for="mensajeGerencia">Mensaje para la gerencia<textarea id="mensajeGerencia" placeholder="Se redacta solo">${esc(e.mensajeGerencia)}</textarea></label>
     </details>
@@ -321,20 +326,8 @@ function autoReport(e){
   const tipo=e.tipoEvento==="Otro"?(e.tipoEventoOtro||"actividad"):(e.tipoEvento||"degustación");
   if(!r.horaLlegada) r.horaLlegada=e.horaInicio?addMin(e.horaInicio,-60):"";
   if(!r.horaRetorno) r.horaRetorno=e.horaFin?addMin(e.horaFin,60):"";
-  if(!r.materialPop){
-    const m=["Pendón Deli Snacks y Salty","Mantel con los colores de la marca","Exhibidor de productos (Salty Rápido, Puffy y Bilo)","Vasitos o envases para degustación y servilletas","Código QR al Instagram @delisnacks_ve"];
-    if(din.includes("Ruleta de premios")) m.push("Ruleta de premios");
-    if(din.includes("Fotografías con clientes")||(e.contenido||[]).length) m.push("Backing o pendón para rincón de fotos");
-    if(e.mascota==="Sí"||din.includes("Interacción con la mascota de la marca")) m.push("Traje de la mascota de la marca");
-    if(din.includes("Votación del sabor favorito")) m.push("Pizarra o frascos para la votación de sabores");
-    if(din.includes("Adivina el sabor")) m.push("Antifaces para el juego Adivina el sabor");
-    if(e.tipoCliente==="Mayorista"||e.tipoCliente==="Mixto") m.push("Lista de precios al mayor y planilla de pedidos");
-    if(e.tipoCliente==="Minorista"||e.tipoCliente==="Mixto") m.push("Volantes con promoción para el consumidor");
-    if(e.tipoEvento==="Aniversario del comercio") m.push("Decoración de aniversario (globos o banderines)");
-    if(e.tipoEvento==="Inauguración") m.push("Cinta o arco de globos para la inauguración");
-    m.push("Toldo, mesa y extensión eléctrica (si el comercio no los provee)");
-    r.materialPop=m.join("\n");
-  }
+  const extra=String(e.materialPop||"").split(/\n|;/).map(x=>x.trim()).filter(Boolean);
+  r.materialPop=(Array.isArray(e.pop)?e.pop:POP).concat(extra).join("\n");
   if(!r.dinamicaPersonalizada){
     const d=[];
     if(e.tipoEvento==="Aniversario del comercio") d.push("Brindis Salty por el aniversario: a la hora pico se celebra con el público y se entrega un obsequio especial al comercio frente a cámara.");
@@ -411,7 +404,7 @@ function collect(){
     ciudad:v("ciudad"),direccion:v("direccion"),referencia:v("referencia"),maps:v("maps"),
     tipoEvento:radio("tipoEvento"),tipoEventoOtro:v("tipoEventoOtro"),descripcion:v("descripcion"),fecha:v("fecha")||selected,
     horaInicio:v("horaInicio"),horaFin:v("horaFin"),mascota:radio("mascota"),premios:v("premios"),
-    dinamicas:checks("dinamicas"),dinamicaOtra:v("dinamicaOtra"),contenido:checks("contenido"),notas:v("notas"),horaLlegada:v("horaLlegada"),horaRetorno:v("horaRetorno"),materialPop:v("materialPop"),dinamicaPersonalizada:v("dinamicaPersonalizada"),mensajeGerencia:v("mensajeGerencia"),updatedAt:new Date().toISOString()};
+    dinamicas:checks("dinamicas"),dinamicaOtra:v("dinamicaOtra"),contenido:checks("contenido"),notas:v("notas"),pop:checks("pop"),horaLlegada:v("horaLlegada"),horaRetorno:v("horaRetorno"),materialPop:v("materialPop"),dinamicaPersonalizada:v("dinamicaPersonalizada"),mensajeGerencia:v("mensajeGerencia"),updatedAt:new Date().toISOString()};
 }
 
 const API_URL="https://script.google.com/macros/s/AKfycbx9KHH0uVp7ECdhWNXy9Wk9mBCExogjEkMemZlwRVVFf59rmfmIdQ0M2h2K5I8Ia9h67g/exec";
